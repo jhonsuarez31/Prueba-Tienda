@@ -1,0 +1,64 @@
+version: '3'
+services:
+  db:
+    container_name: mydb1
+    image: mysql:5.7.36
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8 --collation-server=utf8_general_ci --bind-address=0.0.0.0
+    restart: always
+    ports:
+      - 3307:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_HOST: ${MYSQL_HOST}
+     
+      MYSQL_ALLOW_EMPTY_PASSWORD: ${MYSQL_ALLOW_EMPTY_PASSWORD}
+    
+    volumes:
+      - tienda-db-data:/var/lib/mysql
+    
+  app:
+    build: 
+      context: ./server
+      dockerfile: new_version.Dockerfile
+    image: 'ptienda/app'
+    command: bash -c "while true; do sleep 1; done"
+    # command: ./local_dev.sh
+    ports:
+      - '80:80'
+    environment:
+      MYSQL_HOST: ${MYSQL_HOST}
+      MYSQL_PORT: ${MYSQL_PORT}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      FLASK_APP: app/main.py
+      FLASK_DEBUG: 1
+      RUN: 'flask run --host=0.0.0.0 --port=80'
+      FLASK_ENV: development
+      MYSQL_CONN_TYPE: ${MYSQL_CONN_TYPE}
+    volumes:
+      - ./server/app:/app
+  
+  phpmyadmin:
+    image: phpmyadmin
+    restart: always
+    ports:
+      - 8090:80
+    environment:
+      PMA_HOST: db
+      PMA_USER: root
+      PMA_PASSWORD: 3138533232
+
+  swagger-ui:
+    image: swaggerapi/swagger-ui
+    depends_on:
+      - app
+    environment:
+      - API_URL=http://localhost/v1/swagger/
+    ports:
+      - 8082:8080
+
+volumes:
+  tienda-db-data:
